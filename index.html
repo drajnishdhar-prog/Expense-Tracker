@@ -2,15 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#0f766e" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>Monthly & Daily Expense Tracker</title>
 
   <!-- Chart.js for Graphs -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <!-- Firebase Compat SDK for Easy Multi-Device Cloud Sync -->
+  <!-- Firebase Compat SDK for Reliable Multi-Device & Watch Browser Sync -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
@@ -135,7 +136,7 @@
       color: var(--text);
     }
 
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
     .dot.synced { background: var(--success); }
     .dot.syncing { background: var(--warning); }
     .dot.error { background: var(--danger); }
@@ -252,10 +253,7 @@
       font-size: 0.98rem;
     }
 
-    .section-total {
-      text-align: right;
-    }
-
+    .section-total { text-align: right; }
     .section-total .amt { font-weight: 800; font-size: 1rem; }
     .section-total .meta { font-size: 0.76rem; color: var(--muted); }
 
@@ -327,9 +325,7 @@
       border-color: transparent;
     }
 
-    .day-group {
-      margin-bottom: 16px;
-    }
+    .day-group { margin-bottom: 16px; }
 
     .day-header {
       display: flex;
@@ -533,10 +529,12 @@
       border-radius: 999px;
       font-size: 0.85rem;
       font-weight: 600;
-      z-index: 200;
+      z-index: 300;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.25s;
+      white-space: nowrap;
+      border: 1px solid #334155;
     }
     .toast.show { opacity: 1; }
 
@@ -550,11 +548,320 @@
     .badge.ok { background: var(--success-bg); color: var(--success); }
     .badge.over { background: var(--danger-bg); color: var(--danger); }
     .badge.warn { background: var(--warning-bg); color: var(--warning); }
+
+    /* =====================================================================
+       GALAXY WATCH ULTRA TILE MODE (AMOLED Black & Round-Screen Safe)
+       ===================================================================== */
+    #watchShell { display: none; }
+
+    body.watch-mode {
+      background: #000000 !important;
+      color: #ffffff !important;
+      padding-bottom: 0 !important;
+    }
+    body.watch-mode .topbar,
+    body.watch-mode main.container,
+    body.watch-mode .fab,
+    body.watch-mode .bottom-nav {
+      display: none !important;
+    }
+    body.watch-mode #watchShell {
+      display: block;
+      max-width: 440px;
+      margin: 0 auto;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+      background: #000000;
+    }
+
+    .w-top {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .w-sync-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #94a3b8;
+      background: #111827;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 8px;
+    }
+    .w-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .w-stat-card {
+      background: #141a24;
+      border: 1px solid #263042;
+      border-radius: 20px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .w-stat-card .wl { font-size: 0.68rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; }
+    .w-stat-card .wv { font-size: 1.15rem; font-weight: 800; margin-top: 2px; color: #5eead4; }
+    .w-stat-card.today .wv { color: #fbbf24; }
+
+    .w-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .w-tile {
+      background: #161f2c;
+      border: 1px solid #283548;
+      color: #ffffff;
+      border-radius: 22px;
+      padding: 13px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+      font-family: inherit;
+      active: scale(0.96);
+    }
+    .w-tile:active { transform: scale(0.95); background: #1e293b; }
+    .w-tile .wi { font-size: 1.35rem; line-height: 1; }
+    .w-tile .wt { font-size: 0.78rem; font-weight: 700; }
+    .w-tile .ws { font-size: 0.68rem; color: #5eead4; font-weight: 700; }
+    .w-tile.primary {
+      background: #0f766e;
+      border-color: #14b8a6;
+    }
+    .w-tile.primary .ws { color: #ccfbf1; }
+
+    .w-recent {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 20px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+    .w-recent-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      color: #94a3b8;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .w-tx-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #1f2937;
+      font-size: 0.8rem;
+    }
+    .w-tx-row:last-child { border-bottom: none; }
+    .w-del-btn {
+      background: #450a0a;
+      color: #fca5a5;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      margin-left: 6px;
+    }
+
+    .w-footer {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+    .w-pill-btn {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Watch Custom Numpad Overlay */
+    #watchPadOverlay {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      z-index: 250;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px 16px 32px;
+    }
+    #watchPadOverlay.open { display: flex; }
+    .wp-wrap { width: 100%; max-width: 340px; }
+    .wp-title { text-align: center; font-size: 0.82rem; font-weight: 700; color: #94a3b8; margin-bottom: 4px; }
+    .wp-display {
+      text-align: center;
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: #5eead4;
+      margin-bottom: 8px;
+      min-height: 2.3rem;
+    }
+    .wp-cat-select {
+      background: #111827;
+      color: #fff;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 7px 10px;
+      font-size: 0.78rem;
+      margin-bottom: 8px;
+      display: none;
+    }
+    .wp-keys {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+    .wp-key {
+      background: #161f2c;
+      border: 1px solid #283548;
+      color: #fff;
+      font-size: 1.2rem;
+      font-weight: 700;
+      padding: 11px 0;
+      border-radius: 16px;
+      cursor: pointer;
+    }
+    .wp-key:active { background: #334155; }
+    .wp-key.ok { background: #0f766e; border-color: #14b8a6; }
+    .wp-key.back { background: #27272a; color: #fca5a5; }
+    .wp-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .wp-btn {
+      padding: 10px;
+      border-radius: 999px;
+      border: none;
+      font-weight: 700;
+      font-size: 0.84rem;
+      cursor: pointer;
+    }
+    .wp-btn.cancel { background: #1f2937; color: #cbd5e1; }
+    .wp-btn.save { background: #14b8a6; color: #042f2e; }
   </style>
 </head>
 <body>
 
-  <!-- Top Bar -->
+  <!-- GALAXY WATCH ULTRA TILE INTERFACE -->
+  <div id="watchShell">
+    <div class="w-top">
+      <div class="w-sync-row" onclick="forcePullCloud()">
+        <span class="dot" id="wSyncDot"></span>
+        <span id="wSyncText">Syncing...</span>
+      </div>
+      <div class="w-stats">
+        <div class="w-stat-card today">
+          <div class="wl">Today</div>
+          <div class="wv" id="wTodaySpent">₹0</div>
+        </div>
+        <div class="w-stat-card">
+          <div class="wl">Core Left</div>
+          <div class="wv" id="wCoreLeft">₹0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="w-grid">
+      <button class="w-tile primary" onclick="watchInstantLog('non_essential','tea_breaks','Tea',20)">
+        <span class="wi">☕</span>
+        <span class="wt">Tea</span>
+        <span class="ws">1-Tap ₹20</span>
+      </button>
+      <button class="w-tile primary" onclick="watchInstantLog('water','ro_water','20L RO Water Refill',30)">
+        <span class="wi">💧</span>
+        <span class="wt">RO Water</span>
+        <span class="ws">1-Tap ₹30</span>
+      </button>
+      <button class="w-tile" onclick="openWatchPad('core','vegetables','🥦 Vegetables','Vegetables')">
+        <span class="wi">🥦</span>
+        <span class="wt">Vegetables</span>
+        <span class="ws">Enter ₹</span>
+      </button>
+      <button class="w-tile" onclick="openWatchPad('core','fruits_salad','🥒 Salad / Fruits','Fruits / Salad')">
+        <span class="wi">🥒</span>
+        <span class="wt">Salad/Fruit</span>
+        <span class="ws">Enter ₹</span>
+      </button>
+      <button class="w-tile" onclick="openWatchPad('core','protein','🍗 Protein','Chicken / Eggs / Fish')">
+        <span class="wi">🍗</span>
+        <span class="wt">Protein</span>
+        <span class="ws">Enter ₹</span>
+      </button>
+      <button class="w-tile" onclick="openWatchPad('core','dairy','🥛 Dairy','Milk / Paneer / Curd')">
+        <span class="wi">🥛</span>
+        <span class="wt">Dairy</span>
+        <span class="ws">Enter ₹</span>
+      </button>
+      <button class="w-tile" onclick="openWatchPad('non_essential','friend_social','🤝 Social / Outing','Outing / Friend')">
+        <span class="wi">🤝</span>
+        <span class="wt">Social</span>
+        <span class="ws">Enter ₹</span>
+      </button>
+      <button class="w-tile" onclick="openWatchPad('custom','','➕ Custom Expense','')">
+        <span class="wi">➕</span>
+        <span class="wt">Other</span>
+        <span class="ws">Pick Cat</span>
+      </button>
+    </div>
+
+    <div class="w-recent">
+      <div class="w-recent-title">Today's Logs</div>
+      <div id="wTodayList"></div>
+    </div>
+
+    <div class="w-footer">
+      <button class="w-pill-btn" onclick="forcePullCloud()">🔄 Refresh</button>
+      <button class="w-pill-btn" onclick="toggleWatchMode(false)">📱 Full App</button>
+    </div>
+  </div>
+
+  <!-- Watch Numpad Modal -->
+  <div id="watchPadOverlay">
+    <div class="wp-wrap">
+      <div class="wp-title" id="wpTitle">Enter Amount</div>
+      <div class="wp-display" id="wpDisplay">₹0</div>
+      <select id="wpCatSelect" class="wp-cat-select"></select>
+      <div class="wp-keys">
+        <button class="wp-key" onclick="wpPress('1')">1</button>
+        <button class="wp-key" onclick="wpPress('2')">2</button>
+        <button class="wp-key" onclick="wpPress('3')">3</button>
+        <button class="wp-key" onclick="wpPress('4')">4</button>
+        <button class="wp-key" onclick="wpPress('5')">5</button>
+        <button class="wp-key" onclick="wpPress('6')">6</button>
+        <button class="wp-key" onclick="wpPress('7')">7</button>
+        <button class="wp-key" onclick="wpPress('8')">8</button>
+        <button class="wp-key" onclick="wpPress('9')">9</button>
+        <button class="wp-key" onclick="wpPress('00')">00</button>
+        <button class="wp-key" onclick="wpPress('0')">0</button>
+        <button class="wp-key back" onclick="wpBackspace()">⌫</button>
+      </div>
+      <div class="wp-actions">
+        <button class="wp-btn cancel" onclick="closeWatchPad()">Cancel</button>
+        <button class="wp-btn save" onclick="wpSave()">✓ Log</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULL APP: Top Bar -->
   <header class="topbar">
     <div class="brand">💰 Expense Tracker</div>
     <div class="month-nav">
@@ -565,8 +872,9 @@
     <div class="header-actions">
       <button class="sync-pill" id="syncBadge" onclick="switchTab('settings')">
         <span class="dot" id="syncDot"></span>
-        <span id="syncText">Local Only</span>
+        <span id="syncText">Connecting...</span>
       </button>
+      <button class="icon-btn" onclick="toggleWatchMode(true)" title="Galaxy Watch Tile Mode">⌚</button>
       <button class="icon-btn" id="themeBtn" title="Toggle Dark Mode">🌙</button>
     </div>
   </header>
@@ -669,23 +977,36 @@
     <section id="view-settings" class="view">
       <!-- Firebase Sync Card -->
       <div class="card" style="margin-bottom: 16px;">
-        <h3 style="margin-bottom: 6px;">☁️ Multi-Device Cloud Sync (Firebase Firestore)</h3>
+        <h3 style="margin-bottom: 6px;">☁️ Multi-Device Auto-Sync (Firebase Firestore)</h3>
         <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 12px;">
-          Paste your Firebase Web App config JSON (from Firebase Console → Project Settings) to sync automatically across your phone, tablet, and laptop.
+          Auto-sync is pre-configured for <strong>expenses-tracker-90798</strong>. All devices using this GitHub Pages URL sync automatically in real time.
         </p>
         <div class="form-group">
-          <label>Sync ID (Use the exact same ID on all your devices)</label>
-          <input type="text" id="syncDocIdInput" placeholder="e.g., my-expenses-2026" />
+          <label>Sync ID (Keep identical across phone, tablet, laptop, and watch)</label>
+          <input type="text" id="syncDocIdInput" placeholder="e.g., rahul_expense_tracker_v1" />
         </div>
         <div class="form-group">
           <label>Firebase Config JSON</label>
-          <textarea id="firebaseConfigInput" rows="6" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
+          <textarea id="firebaseConfigInput" rows="6"></textarea>
         </div>
         <div class="btn-row">
-          <button class="btn" onclick="saveFirebaseSettings()">Connect & Sync</button>
+          <button class="btn" onclick="saveFirebaseSettings()">Reconnect & Sync</button>
           <button class="btn secondary" onclick="forcePushCloud()">⬆️ Push Local to Cloud</button>
           <button class="btn secondary" onclick="forcePullCloud()">⬇️ Pull Cloud to Local</button>
           <button class="btn secondary" onclick="disconnectFirebase()">Disconnect</button>
+        </div>
+      </div>
+
+      <!-- Watch Tile Shortcut Info -->
+      <div class="card" style="margin-bottom: 16px;">
+        <h3 style="margin-bottom: 6px;">⌚ Galaxy Watch Ultra Tile Link</h3>
+        <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 10px;">
+          Open this link in Samsung Internet on your Galaxy Watch Ultra and bookmark it to use with the Samsung Internet Bookmarks Tile:
+        </p>
+        <input type="text" id="watchUrlBox" readonly onclick="this.select()" style="font-size:0.8rem;" />
+        <div class="btn-row">
+          <button class="btn secondary" onclick="copyWatchUrl()">📋 Copy Watch URL</button>
+          <button class="btn" onclick="toggleWatchMode(true)">⌚ Preview Watch Mode</button>
         </div>
       </div>
 
@@ -810,20 +1131,18 @@
 
   <script>
     /*************************************************************************
-     * OPTIONAL: Paste your Firebase config directly here on GitHub so every
-     * new device connects automatically without pasting it in Settings.
+     * BUILT-IN FIREBASE CONFIG (Auto-Sync Enabled on All Devices)
      *************************************************************************/
-    const DEFAULT_FIREBASE_CONFIG = null;
-    /* Example:
     const DEFAULT_FIREBASE_CONFIG = {
-      apiKey: "AIzaSy...",
-      authDomain: "your-project.firebaseapp.com",
-      projectId: "your-project-id",
-      storageBucket: "your-project.appspot.com",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abcdef"
+      apiKey: "AIzaSyCt2_ourJPMTKu5xwZ_kF9lwFMitRK-bIk",
+      authDomain: "expenses-tracker-90798.firebaseapp.com",
+      projectId: "expenses-tracker-90798",
+      storageBucket: "expenses-tracker-90798.firebasestorage.app",
+      messagingSenderId: "467056848862",
+      appId: "1:467056848862:web:ed9897241f0faa67d9774f",
+      measurementId: "G-LP28MZ532T"
     };
-    */
+
     const DEFAULT_SYNC_DOC_ID = "rahul_expense_tracker_v1";
     const STORAGE_KEY = "monthly_expense_tracker_state_v1";
     const FB_CONFIG_KEY = "monthly_expense_tracker_fb_config";
@@ -939,9 +1258,10 @@
       ];
     }
 
-    function createDefaultState() {
+    // updatedAt = 0 on fresh default seed so a brand-new device (e.g., Watch/iPad) pulls Cloud data instead of overwriting it!
+    function createDefaultState(timestamp = 0) {
       return {
-        updatedAt: Date.now(),
+        updatedAt: timestamp,
         sections: JSON.parse(JSON.stringify(DEFAULT_SECTIONS)),
         categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
         transactions: createInitialNov2026Transactions()
@@ -950,15 +1270,19 @@
 
     // App State
     let state = loadLocalState();
-    let currentMonth = getLocalYearMonth(new Date()); // "YYYY-MM"
+    let currentMonth = getLocalYearMonth(new Date());
     let collapsedSections = {};
     let charts = { budget: null, daily: null, section: null };
+
+    // Watch Numpad State
+    let watchPadCtx = { sectionId: "", categoryId: "", note: "", value: "" };
 
     // Firebase Handles
     let db = null;
     let docRef = null;
     let unsubscribeSnapshot = null;
     let syncTimeout = null;
+    let persistenceAttempted = false;
 
     function loadLocalState() {
       try {
@@ -970,7 +1294,7 @@
           }
         }
       } catch (e) { console.error(e); }
-      const fresh = createDefaultState();
+      const fresh = createDefaultState(0);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
       return fresh;
     }
@@ -989,7 +1313,7 @@
             console.error("Cloud save failed:", err);
             setSyncStatus("error", "Sync Error");
           }
-        }, 350);
+        }, 300);
       }
     }
 
@@ -1031,14 +1355,19 @@
       const el = document.getElementById("toast");
       el.textContent = msg;
       el.classList.add("show");
-      setTimeout(() => el.classList.remove("show"), 2200);
+      setTimeout(() => el.classList.remove("show"), 2000);
     }
 
     function setSyncStatus(type, text) {
       const dot = document.getElementById("syncDot");
       const label = document.getElementById("syncText");
-      dot.className = "dot " + type;
-      label.textContent = text;
+      if (dot) dot.className = "dot " + type;
+      if (label) label.textContent = text;
+
+      const wDot = document.getElementById("wSyncDot");
+      const wLabel = document.getElementById("wSyncText");
+      if (wDot) wDot.className = "dot " + type;
+      if (wLabel) wLabel.textContent = text;
     }
 
     // Navigation
@@ -1052,10 +1381,152 @@
       if (tab === "settings") renderSettings();
     }
 
+    // =========================================================================
+    // GALAXY WATCH ULTRA TILE MODE
+    // =========================================================================
+    function toggleWatchMode(enable) {
+      document.body.classList.toggle("watch-mode", enable);
+      if (enable) renderWatchMode();
+      else renderAll();
+    }
+
+    function renderWatchMode() {
+      const nowYM = getLocalYearMonth(new Date());
+      const todayStr = getLocalDateStr();
+      const monthTxs = getMonthTransactions(nowYM);
+
+      let todayTotal = 0;
+      let coreSpent = 0;
+      monthTxs.forEach(t => {
+        const amt = Number(t.amount) || 0;
+        if (t.date === todayStr) todayTotal += amt;
+        if (t.sectionId === "core") coreSpent += amt;
+      });
+
+      const coreBudget = state.categories
+        .filter(c => c.sectionId === "core")
+        .reduce((s, c) => s + (Number(c.budget) || 0), 0);
+      const coreRem = coreBudget - coreSpent;
+
+      document.getElementById("wTodaySpent").textContent = formatINR(todayTotal);
+      const leftEl = document.getElementById("wCoreLeft");
+      leftEl.textContent = formatINR(coreRem);
+      leftEl.style.color = coreRem < 0 ? "#f87171" : "#5eead4";
+
+      const todayList = monthTxs
+        .filter(t => t.date === todayStr)
+        .sort((a, b) => b.id.localeCompare(a.id));
+
+      const catMap = Object.fromEntries(state.categories.map(c => [c.id, c.name]));
+      const listEl = document.getElementById("wTodayList");
+      if (todayList.length === 0) {
+        listEl.innerHTML = `<div style="text-align:center;color:#64748b;font-size:0.74rem;padding:6px 0;">No expenses logged today</div>`;
+      } else {
+        listEl.innerHTML = todayList.slice(0, 6).map(t => `
+          <div class="w-tx-row">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:58%;">${escapeHtml(t.note || catMap[t.categoryId] || "Item")}</span>
+            <span style="display:flex;align-items:center;font-weight:700;">
+              ${formatINR(t.amount)}
+              <button class="w-del-btn" onclick="watchDeleteTx('${t.id}')" title="Undo">✕</button>
+            </span>
+          </div>
+        `).join("");
+      }
+    }
+
+    function watchInstantLog(sectionId, categoryId, note, amount) {
+      const today = getLocalDateStr();
+      state.transactions.push({
+        id: "tx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        date: today,
+        sectionId,
+        categoryId,
+        amount: Number(amount),
+        note,
+        mode: "UPI"
+      });
+      currentMonth = today.slice(0, 7);
+      persistState(true);
+      renderAll();
+      showToast(`Logged ${note} ${formatINR(amount)}`);
+    }
+
+    function watchDeleteTx(id) {
+      state.transactions = state.transactions.filter(t => t.id !== id);
+      persistState(true);
+      renderAll();
+      showToast("Removed");
+    }
+
+    function openWatchPad(sectionId, categoryId, title, defaultNote) {
+      watchPadCtx = { sectionId, categoryId, note: defaultNote, value: "" };
+      document.getElementById("wpTitle").textContent = title;
+      document.getElementById("wpDisplay").textContent = "₹0";
+
+      const sel = document.getElementById("wpCatSelect");
+      if (sectionId === "custom") {
+        sel.style.display = "block";
+        sel.innerHTML = state.categories.map(c =>
+          `<option value="${c.sectionId}::${c.id}">${escapeHtml(c.name)}</option>`
+        ).join("");
+      } else {
+        sel.style.display = "none";
+      }
+      document.getElementById("watchPadOverlay").classList.add("open");
+    }
+
+    function closeWatchPad() {
+      document.getElementById("watchPadOverlay").classList.remove("open");
+    }
+
+    function wpPress(digit) {
+      if (watchPadCtx.value.length >= 7) return;
+      if (watchPadCtx.value === "" && (digit === "0" || digit === "00")) return;
+      watchPadCtx.value += digit;
+      document.getElementById("wpDisplay").textContent = formatINR(Number(watchPadCtx.value || 0));
+    }
+
+    function wpBackspace() {
+      watchPadCtx.value = watchPadCtx.value.slice(0, -1);
+      document.getElementById("wpDisplay").textContent = formatINR(Number(watchPadCtx.value || 0));
+    }
+
+    function wpSave() {
+      const amt = Number(watchPadCtx.value);
+      if (!amt || amt <= 0) return showToast("Enter amount");
+
+      let secId = watchPadCtx.sectionId;
+      let catId = watchPadCtx.categoryId;
+      let note = watchPadCtx.note;
+
+      if (secId === "custom") {
+        const val = document.getElementById("wpCatSelect").value.split("::");
+        secId = val[0];
+        catId = val[1];
+        const found = state.categories.find(c => c.id === catId);
+        note = found ? found.name : "Watch Expense";
+      }
+
+      closeWatchPad();
+      watchInstantLog(secId, catId, note, amt);
+    }
+
+    function copyWatchUrl() {
+      const box = document.getElementById("watchUrlBox");
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(box.value).then(() => showToast("Watch URL copied!"));
+      } else {
+        box.select();
+        document.execCommand("copy");
+        showToast("Watch URL copied!");
+      }
+    }
+
     // Render Everything
     function renderAll() {
       document.getElementById("monthLabel").textContent = formatMonthTitle(currentMonth);
       renderDashboard();
+      if (document.body.classList.contains("watch-mode")) renderWatchMode();
       if (document.getElementById("view-daily").classList.contains("active")) renderDaily();
       if (document.getElementById("view-graphs").classList.contains("active")) renderCharts();
       if (document.getElementById("view-settings").classList.contains("active")) renderSettings();
@@ -1065,7 +1536,6 @@
       const txs = getMonthTransactions();
       const todayStr = getLocalDateStr();
 
-      // Calculate totals per category and section
       const catTotals = {};
       const secTotals = {};
       let todayTotal = 0;
@@ -1085,7 +1555,6 @@
       const coreRem = coreBudget - coreSpent;
       const nonEssentialSpent = secTotals["non_essential"] || 0;
 
-      // Days left in viewed month
       const [y, m] = currentMonth.split("-").map(Number);
       const daysInMonth = new Date(y, m, 0).getDate();
       const now = new Date();
@@ -1113,7 +1582,6 @@
       document.getElementById("grandTotal").textContent = formatINR(grandTotal);
       document.getElementById("nonEssentialSub").textContent = `Non-Essentials: ${formatINR(nonEssentialSpent)}`;
 
-      // Render all 7 sections
       const container = document.getElementById("sectionsContainer");
       container.innerHTML = state.sections.map(sec => {
         const cats = state.categories.filter(c => c.sectionId === sec.id);
@@ -1220,7 +1688,6 @@
         return;
       }
 
-      // Group by Date
       const grouped = {};
       list.forEach(t => {
         if (!grouped[t.date]) grouped[t.date] = [];
@@ -1276,7 +1743,6 @@
       const textColor = isDark ? "#cbd5e1" : "#334155";
       const gridColor = isDark ? "#334155" : "#e2e8f0";
 
-      // 1. Core Budget vs Spent
       const coreCats = state.categories.filter(c => c.sectionId === "core");
       const coreSpentMap = {};
       txs.filter(t => t.sectionId === "core").forEach(t => {
@@ -1316,7 +1782,6 @@
         }
       });
 
-      // 2. Daily Spending Trend
       const excludeFixed = document.getElementById("excludeFixedToggle").checked;
       const [y, m] = currentMonth.split("-").map(Number);
       const daysInMonth = new Date(y, m, 0).getDate();
@@ -1358,7 +1823,6 @@
         }
       });
 
-      // 3. Section Distribution Doughnut
       const secSums = state.sections.map(sec =>
         txs.filter(t => t.sectionId === sec.id).reduce((s, t) => s + Number(t.amount), 0)
       );
@@ -1393,7 +1857,6 @@
       document.getElementById("txNote").value = "";
       document.getElementById("txMode").value = "UPI";
 
-      // Default date to today if inside viewed month, else 1st of viewed month
       const today = getLocalDateStr();
       document.getElementById("txDate").value = today.startsWith(currentMonth) ? today : `${currentMonth}-01`;
 
@@ -1486,9 +1949,12 @@
     // Settings & Budgets
     function renderSettings() {
       const savedDoc = localStorage.getItem(FB_DOC_KEY) || DEFAULT_SYNC_DOC_ID;
-      const savedCfg = localStorage.getItem(FB_CONFIG_KEY) || (DEFAULT_FIREBASE_CONFIG ? JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2) : "");
+      const savedCfg = localStorage.getItem(FB_CONFIG_KEY) || JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
       document.getElementById("syncDocIdInput").value = savedDoc;
       document.getElementById("firebaseConfigInput").value = savedCfg;
+
+      const baseUrl = window.location.origin + window.location.pathname;
+      document.getElementById("watchUrlBox").value = baseUrl + "?watch=1";
 
       const coreCats = state.categories.filter(c => c.sectionId === "core");
       document.getElementById("budgetEditorList").innerHTML = coreCats.map(c => `
@@ -1569,19 +2035,18 @@
 
     function resetToBaseline() {
       if (!confirm("Reset all data to your Nov 2026 ₹70,048 baseline? This will overwrite current data.")) return;
-      state = createDefaultState();
+      state = createDefaultState(Date.now());
       currentMonth = "2026-11";
       persistState(true);
       renderAll();
       showToast("Nov 2026 baseline restored");
     }
 
-    // Firebase Multi-Device Cloud Sync
+    // Firebase Multi-Device Auto-Sync
     function saveFirebaseSettings() {
       const rawCfg = document.getElementById("firebaseConfigInput").value.trim();
       const docId = (document.getElementById("syncDocIdInput").value || "").trim() || DEFAULT_SYNC_DOC_ID;
       try {
-        // Support pasting either pure JSON or JS object snippet from Firebase console
         const cleaned = rawCfg
           .replace(/const\s+\w+\s*=\s*/g, "")
           .replace(/;$/, "")
@@ -1602,14 +2067,14 @@
       if (unsubscribeSnapshot) unsubscribeSnapshot();
       unsubscribeSnapshot = null;
       docRef = null;
-      localStorage.removeItem(FB_CONFIG_KEY);
+      localStorage.setItem(FB_CONFIG_KEY, "DISABLED");
       setSyncStatus("", "Local Only");
       showToast("Disconnected from Cloud");
     }
 
     async function initFirebase(cfg, docId) {
       try {
-        setSyncStatus("syncing", "Connecting...");
+        setSyncStatus("syncing", "Syncing...");
         if (unsubscribeSnapshot) unsubscribeSnapshot();
 
         let app;
@@ -1619,9 +2084,16 @@
           app = firebase.initializeApp(cfg);
         }
         db = firebase.firestore(app);
+
+        if (!persistenceAttempted) {
+          persistenceAttempted = true;
+          try {
+            await db.enablePersistence({ synchronizeTabs: true });
+          } catch (e) { /* Ignore if unsupported in private/watch tab */ }
+        }
+
         docRef = db.collection("expense_trackers").doc(docId);
 
-        // Initial check: pull cloud if exists, else upload local baseline
         const snap = await docRef.get();
         if (snap.exists && snap.data() && Array.isArray(snap.data().transactions)) {
           const cloudData = snap.data();
@@ -1633,10 +2105,12 @@
             await docRef.set(state);
           }
         } else {
+          state.updatedAt = Date.now();
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
           await docRef.set(state);
         }
 
-        // Real-time listener across all devices
+        // Real-time cross-device listener
         unsubscribeSnapshot = docRef.onSnapshot(s => {
           if (s.metadata.hasPendingWrites || !s.exists) return;
           const cloud = s.data();
@@ -1649,7 +2123,7 @@
           setSyncStatus("synced", "Cloud Synced");
         }, err => {
           console.error(err);
-          setSyncStatus("error", "Sync Error");
+          setSyncStatus("error", "Check Rules");
         });
 
         setSyncStatus("synced", "Cloud Synced");
@@ -1669,17 +2143,23 @@
     }
 
     async function forcePullCloud() {
-      if (!docRef) return alert("Connect Firebase first.");
+      if (!docRef) return showToast("Not connected");
       setSyncStatus("syncing", "Pulling...");
-      const snap = await docRef.get();
-      if (snap.exists) {
-        state = snap.data();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        renderAll();
-        setSyncStatus("synced", "Cloud Synced");
-        showToast("Pulled latest data from Cloud");
-      } else {
-        showToast("No cloud data found yet");
+      try {
+        const snap = await docRef.get({ source: "server" });
+        if (snap.exists) {
+          state = snap.data();
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          renderAll();
+          setSyncStatus("synced", "Cloud Synced");
+          showToast("Synced latest from Cloud");
+        } else {
+          setSyncStatus("synced", "Cloud Synced");
+          showToast("No cloud data yet");
+        }
+      } catch (err) {
+        setSyncStatus("error", "Offline");
+        showToast("Could not reach cloud");
       }
     }
 
@@ -1687,7 +2167,7 @@
       return String(str || "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
     }
 
-    // Theme & Boot
+    // Theme & Event Listeners
     document.getElementById("prevMonthBtn").addEventListener("click", () => shiftMonth(-1));
     document.getElementById("nextMonthBtn").addEventListener("click", () => shiftMonth(1));
     document.getElementById("themeBtn").addEventListener("click", () => {
@@ -1703,19 +2183,27 @@
       document.getElementById("themeBtn").textContent = "☀️";
     }
 
-    // Close modal on backdrop click
     document.getElementById("txModal").addEventListener("click", (e) => {
       if (e.target.id === "txModal") closeModal();
     });
 
-    // Auto-connect Firebase if configured
+    // Boot: Detect Watch Screen/URL + Auto-Connect Firebase
     (function boot() {
+      const params = new URLSearchParams(window.location.search);
+      const isSmallWatch = window.innerWidth <= 420 && window.innerHeight <= 480;
+      if (params.get("watch") === "1" || isSmallWatch) {
+        document.body.classList.add("watch-mode");
+      }
+
       renderAll();
+
       const savedCfg = localStorage.getItem(FB_CONFIG_KEY);
       const savedDoc = localStorage.getItem(FB_DOC_KEY) || DEFAULT_SYNC_DOC_ID;
-      if (savedCfg) {
-        try { initFirebase(JSON.parse(savedCfg), savedDoc); } catch (e) {}
-      } else if (DEFAULT_FIREBASE_CONFIG) {
+      if (savedCfg === "DISABLED") {
+        setSyncStatus("", "Local Only");
+      } else if (savedCfg) {
+        try { initFirebase(JSON.parse(savedCfg), savedDoc); } catch (e) { initFirebase(DEFAULT_FIREBASE_CONFIG, savedDoc); }
+      } else {
         initFirebase(DEFAULT_FIREBASE_CONFIG, savedDoc);
       }
     })();
