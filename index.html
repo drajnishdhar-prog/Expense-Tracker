@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f766e" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Monthly & Daily Expense Tracker</title>
+
+  <!-- Chart.js for Graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Firebase Compat SDK for Easy Multi-Device Cloud Sync -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #0f766e;
+      --primary-light: #ccfbf1;
+      --primary-dark: #115e59;
+      --danger: #dc2626;
+      --danger-bg: #fee2e2;
+      --warning: #d97706;
+      --warning-bg: #fef3c7;
+      --success: #059669;
+      --success-bg: #d1fae5;
+      --shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+      --radius: 16px;
+    }
+
+    body.dark {
+      --bg: #0b1120;
+      --surface: #1e293b;
+      --surface-2: #0f172a;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --border: #334155;
+      --primary: #14b8a6;
+      --primary-light: #134e4a;
+      --primary-dark: #2dd4bf;
+      --danger: #f87171;
+      --danger-bg: #450a0a;
+      --warning: #fbbf24;
+      --warning-bg: #451a03;
+      --success: #34d399;
+      --success-bg: #064e3b;
+      --shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 92px;
+      line-height: 1.45;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    /* Header */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+
+    .month-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 8px;
+    }
+
+    .month-nav button {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+    }
+
+    .month-nav button:hover { background: var(--border); }
+    .month-label { font-weight: 700; font-size: 0.9rem; min-width: 88px; text-align: center; }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sync-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      cursor: pointer;
+      color: var(--text);
+    }
+
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+    .dot.synced { background: var(--success); }
+    .dot.syncing { background: var(--warning); }
+    .dot.error { background: var(--danger); }
+
+    .icon-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* Hero Summary Grid */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero-card {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #ffffff;
+      border: none;
+    }
+
+    .hero-card .label { color: #94a3b8; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .hero-card .big-num { font-size: 1.75rem; font-weight: 800; margin: 4px 0; }
+    .hero-card .sub { font-size: 0.82rem; color: #cbd5e1; }
+
+    .stat-card .label { color: var(--muted); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; }
+    .stat-card .big-num { font-size: 1.45rem; font-weight: 800; margin: 4px 0; }
+    .stat-card .sub { font-size: 0.8rem; color: var(--muted); }
+
+    .text-success { color: var(--success); }
+    .text-danger { color: var(--danger); }
+    .text-warning { color: var(--warning); }
+
+    /* Quick Add Chips */
+    .quick-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 4px 0 14px;
+      scrollbar-width: none;
+    }
+    .quick-bar::-webkit-scrollbar { display: none; }
+
+    .chip {
+      flex: 0 0 auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: var(--shadow);
+    }
+    .chip:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* Section Cards */
+    .section-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 14px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .section-header {
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      background: var(--surface);
+      user-select: none;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 0.98rem;
+    }
+
+    .section-total {
+      text-align: right;
+    }
+
+    .section-total .amt { font-weight: 800; font-size: 1rem; }
+    .section-total .meta { font-size: 0.76rem; color: var(--muted); }
+
+    .section-body {
+      border-top: 1px solid var(--border);
+      padding: 10px 16px 14px;
+    }
+
+    .cat-row {
+      padding: 10px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .cat-row:last-child { border-bottom: none; padding-bottom: 2px; }
+
+    .cat-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .cat-name { font-weight: 600; font-size: 0.92rem; }
+    .cat-sub { font-size: 0.74rem; color: var(--muted); display: block; margin-top: 1px; }
+    .cat-nums { text-align: right; white-space: nowrap; font-size: 0.88rem; font-weight: 700; }
+    .cat-nums small { display: block; font-weight: 500; font-size: 0.74rem; }
+
+    .progress-track {
+      width: 100%;
+      height: 7px;
+      background: var(--surface-2);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    /* Daily Log */
+    .filter-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 600px) {
+      .filter-row { grid-template-columns: 1fr 1fr; }
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 0.92rem;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid var(--primary);
+      border-color: transparent;
+    }
+
+    .day-group {
+      margin-bottom: 16px;
+    }
+
+    .day-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+      padding: 6px 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .tx-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      box-shadow: var(--shadow);
+    }
+
+    .tx-left { min-width: 0; }
+    .tx-title { font-weight: 700; font-size: 0.94rem; }
+    .tx-meta { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .tx-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .tx-amt { font-weight: 800; font-size: 1rem; }
+
+    .mini-btn {
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      padding: 5px 8px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .mini-btn.del { color: var(--danger); border-color: var(--danger-bg); }
+
+    /* Charts */
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chart-header h3 { font-size: 1rem; font-weight: 700; }
+    .chart-box { position: relative; height: 300px; width: 100%; }
+    .chart-box.tall { height: 360px; }
+
+    /* Settings & Budgets */
+    .btn {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      padding: 11px 16px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn:hover { background: var(--primary-dark); }
+    .btn.secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn.danger { background: var(--danger); color: #fff; }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+    .budget-edit-row {
+      display: grid;
+      grid-template-columns: 1fr 120px;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .budget-edit-row:last-child { border-bottom: none; }
+
+    /* FAB & Bottom Nav */
+    .fab {
+      position: fixed;
+      right: 20px;
+      bottom: 80px;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-size: 2rem;
+      font-weight: 400;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(15, 118, 110, 0.4);
+      display: grid;
+      place-items: center;
+      z-index: 45;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+      z-index: 40;
+    }
+
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .nav-btn span.ico { font-size: 1.25rem; }
+    .nav-btn.active { color: var(--primary); }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 100;
+      padding: 12px;
+    }
+    .modal-backdrop.open { display: flex; }
+
+    @media (min-width: 640px) {
+      .modal-backdrop { align-items: center; }
+    }
+
+    .modal {
+      background: var(--surface);
+      width: 100%;
+      max-width: 480px;
+      border-radius: 20px;
+      padding: 20px;
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .form-group { margin-bottom: 12px; }
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .toast {
+      position: fixed;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .toast.show { opacity: 1; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .badge.ok { background: var(--success-bg); color: var(--success); }
+    .badge.over { background: var(--danger-bg); color: var(--danger); }
+    .badge.warn { background: var(--warning-bg); color: var(--warning); }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="brand">💰 Expense Tracker</div>
+    <div class="month-nav">
+      <button id="prevMonthBtn" title="Previous Month">‹</button>
+      <div class="month-label" id="monthLabel">Nov 2026</div>
+      <button id="nextMonthBtn" title="Next Month">›</button>
+    </div>
+    <div class="header-actions">
+      <button class="sync-pill" id="syncBadge" onclick="switchTab('settings')">
+        <span class="dot" id="syncDot"></span>
+        <span id="syncText">Local Only</span>
+      </button>
+      <button class="icon-btn" id="themeBtn" title="Toggle Dark Mode">🌙</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- TAB 1: DASHBOARD -->
+    <section id="view-dashboard" class="view active">
+      <div class="summary-grid">
+        <div class="card hero-card">
+          <div class="label">Core Essentials Remaining</div>
+          <div class="big-num" id="coreRemaining">₹0</div>
+          <div class="sub" id="coreDailySafe">Budget: ₹25,360</div>
+        </div>
+        <div class="card stat-card">
+          <div class="label">Core Spent So Far</div>
+          <div class="big-num" id="coreSpent">₹0</div>
+          <div class="sub" id="corePct">0% of monthly budget</div>
+        </div>
+        <div class="card stat-card">
+          <div class="label">Today's Spending</div>
+          <div class="big-num" id="todaySpent">₹0</div>
+          <div class="sub" id="todayDateLabel">Today</div>
+        </div>
+        <div class="card stat-card">
+          <div class="label">Total Monthly Outflow</div>
+          <div class="big-num" id="grandTotal">₹0</div>
+          <div class="sub" id="nonEssentialSub">Non-Essentials: ₹0</div>
+        </div>
+      </div>
+
+      <!-- 1-Tap Quick Add Presets -->
+      <div class="quick-bar">
+        <button class="chip" onclick="openModalWithPreset('non_essential','tea_breaks','Tea',20)">☕ Tea ₹20</button>
+        <button class="chip" onclick="openModalWithPreset('core','vegetables','Vegetables','')">🥦 Vegetables</button>
+        <button class="chip" onclick="openModalWithPreset('core','fruits_salad','Cucumber / Lemon','')">🥒 Salad / Fruits</button>
+        <button class="chip" onclick="openModalWithPreset('core','protein','Chicken / Eggs / Fish','')">🍗 Protein</button>
+        <button class="chip" onclick="openModalWithPreset('core','dairy','Milk / Paneer / Curd','')">🥛 Dairy</button>
+        <button class="chip" onclick="openModalWithPreset('water','ro_water','20L RO Water Refill',30)">💧 RO Water</button>
+        <button class="chip" onclick="openModalWithPreset('non_essential','friend_social','Outing / Friend','')">🤝 Social</button>
+      </div>
+
+      <!-- All 7 Sections Rendered Dynamically -->
+      <div id="sectionsContainer"></div>
+    </section>
+
+    <!-- TAB 2: DAILY LOG -->
+    <section id="view-daily" class="view">
+      <div class="card" style="margin-bottom: 14px;">
+        <div class="filter-row">
+          <input type="text" id="searchInput" placeholder="Search item, note, category..." oninput="renderDaily()" />
+          <select id="sectionFilter" onchange="renderDaily()">
+            <option value="all">All Sections</option>
+          </select>
+          <input type="date" id="dateFilter" onchange="renderDaily()" />
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.84rem; color:var(--muted);">
+          <span id="dailyFilterCount">0 transactions</span>
+          <button class="mini-btn" onclick="clearFilters()">Clear Filters</button>
+        </div>
+      </div>
+      <div id="dailyListContainer"></div>
+    </section>
+
+    <!-- TAB 3: GRAPHS -->
+    <section id="view-graphs" class="view">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>📊 Core Essentials: Budget vs. Spent</h3>
+          <span class="badge ok" id="chartCoreBadge">On Track</span>
+        </div>
+        <div class="chart-box tall">
+          <canvas id="budgetChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>📈 Daily Spending Trend</h3>
+          <label style="font-size:0.8rem; display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="excludeFixedToggle" checked onchange="renderCharts()" style="width:auto;" />
+            Core + Lifestyle Only (Hide EMIs/Rent)
+          </label>
+        </div>
+        <div class="chart-box">
+          <canvas id="dailyChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>🍩 Monthly Outflow by Section</h3>
+        </div>
+        <div class="chart-box">
+          <canvas id="sectionChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: BUDGETS & CLOUD SYNC -->
+    <section id="view-settings" class="view">
+      <!-- Firebase Sync Card -->
+      <div class="card" style="margin-bottom: 16px;">
+        <h3 style="margin-bottom: 6px;">☁️ Multi-Device Cloud Sync (Firebase Firestore)</h3>
+        <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 12px;">
+          Paste your Firebase Web App config JSON (from Firebase Console → Project Settings) to sync automatically across your phone, tablet, and laptop.
+        </p>
+        <div class="form-group">
+          <label>Sync ID (Use the exact same ID on all your devices)</label>
+          <input type="text" id="syncDocIdInput" placeholder="e.g., my-expenses-2026" />
+        </div>
+        <div class="form-group">
+          <label>Firebase Config JSON</label>
+          <textarea id="firebaseConfigInput" rows="6" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="saveFirebaseSettings()">Connect & Sync</button>
+          <button class="btn secondary" onclick="forcePushCloud()">⬆️ Push Local to Cloud</button>
+          <button class="btn secondary" onclick="forcePullCloud()">⬇️ Pull Cloud to Local</button>
+          <button class="btn secondary" onclick="disconnectFirebase()">Disconnect</button>
+        </div>
+      </div>
+
+      <!-- Monthly Core Budget Editor -->
+      <div class="card" style="margin-bottom: 16px;">
+        <h3 style="margin-bottom: 6px;">🎯 Edit Monthly Core Budgets</h3>
+        <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 10px;">
+          Changes apply across every month automatically and sync to all devices.
+        </p>
+        <div id="budgetEditorList"></div>
+        <div class="btn-row">
+          <button class="btn" onclick="saveBudgets()">Save Budget Changes</button>
+        </div>
+      </div>
+
+      <!-- Add Custom Category -->
+      <div class="card" style="margin-bottom: 16px;">
+        <h3 style="margin-bottom: 10px;">➕ Add Custom Category</h3>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Section</label>
+            <select id="newCatSection"></select>
+          </div>
+          <div class="form-group">
+            <label>Monthly Budget (₹, optional)</label>
+            <input type="number" id="newCatBudget" placeholder="0" min="0" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Category Name</label>
+          <input type="text" id="newCatName" placeholder="e.g., Petrol / Bike Service" />
+        </div>
+        <button class="btn" onclick="addCustomCategory()">Add Category</button>
+      </div>
+
+      <!-- Backup & Export -->
+      <div class="card">
+        <h3 style="margin-bottom: 10px;">💾 Backup, Export & Reset</h3>
+        <div class="btn-row">
+          <button class="btn secondary" onclick="exportCSV()">📄 Export Current Month (CSV)</button>
+          <button class="btn secondary" onclick="exportJSON()">📦 Export Full Backup (JSON)</button>
+          <label class="btn secondary" style="cursor:pointer;">
+            📥 Import JSON
+            <input type="file" accept=".json" style="display:none;" onchange="importJSON(event)" />
+          </label>
+          <button class="btn danger" onclick="resetToBaseline()">↺ Restore Nov 2026 Baseline</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Floating Add Button -->
+  <button class="fab" onclick="openAddModal()" title="Add Expense">+</button>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="nav-dashboard" onclick="switchTab('dashboard')">
+      <span class="ico">📊</span><span>Overview</span>
+    </button>
+    <button class="nav-btn" id="nav-daily" onclick="switchTab('daily')">
+      <span class="ico">📅</span><span>Daily Log</span>
+    </button>
+    <button class="nav-btn" id="nav-graphs" onclick="switchTab('graphs')">
+      <span class="ico">📈</span><span>Graphs</span>
+    </button>
+    <button class="nav-btn" id="nav-settings" onclick="switchTab('settings')">
+      <span class="ico">⚙️</span><span>Budget/Sync</span>
+    </button>
+  </nav>
+
+  <!-- Add / Edit Expense Modal -->
+  <div class="modal-backdrop" id="txModal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="modalTitle">Add Expense</h3>
+        <button class="icon-btn" onclick="closeModal()">✕</button>
+      </div>
+      <form id="txForm" onsubmit="saveTransaction(event)">
+        <input type="hidden" id="txId" />
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Amount (₹)</label>
+            <input type="number" id="txAmount" step="0.01" min="0.01" required placeholder="0" autofocus />
+          </div>
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="txDate" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Section</label>
+          <select id="txSection" onchange="populateCategoryDropdown()" required></select>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="txCategory" required></select>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Item / Note</label>
+            <input type="text" id="txNote" placeholder="e.g., Boro sabji, Tea, Milk" />
+          </div>
+          <div class="form-group">
+            <label>Payment Mode</label>
+            <select id="txMode">
+              <option value="UPI">UPI</option>
+              <option value="Cash">Cash</option>
+              <option value="Card">Card</option>
+              <option value="Auto-Debit">Auto-Debit / Bank</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row" style="justify-content: flex-end;">
+          <button type="button" class="btn secondary" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn">Save Expense</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Saved!</div>
+
+  <script>
+    /*************************************************************************
+     * OPTIONAL: Paste your Firebase config directly here on GitHub so every
+     * new device connects automatically without pasting it in Settings.
+     *************************************************************************/
+    const DEFAULT_FIREBASE_CONFIG = null;
+    /* Example:
+    const DEFAULT_FIREBASE_CONFIG = {
+      apiKey: "AIzaSy...",
+      authDomain: "your-project.firebaseapp.com",
+      projectId: "your-project-id",
+      storageBucket: "your-project.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef"
+    };
+    */
+    const DEFAULT_SYNC_DOC_ID = "rahul_expense_tracker_v1";
+    const STORAGE_KEY = "monthly_expense_tracker_state_v1";
+    const FB_CONFIG_KEY = "monthly_expense_tracker_fb_config";
+    const FB_DOC_KEY = "monthly_expense_tracker_fb_doc";
+
+    // Exact 7 sections matching your monthly tracking structure
+    const DEFAULT_SECTIONS = [
+      { id: "core", name: "Core Essentials & Fitness", icon: "📊", color: "#0f766e", isCore: true },
+      { id: "water", name: "Home RO Water Tracker", icon: "💧", color: "#0284c7", isCore: false },
+      { id: "emi", name: "Fixed EMIs & Debt Repayment", icon: "🏦", color: "#dc2626", isCore: false },
+      { id: "investments", name: "Professional & Govt Investments", icon: "💼", color: "#7c3aed", isCore: false },
+      { id: "housing", name: "Fixed Housing & Utilities", icon: "🏠", color: "#2563eb", isCore: false },
+      { id: "household", name: "Household & One-Time Purchases", icon: "🍳", color: "#d97706", isCore: false },
+      { id: "non_essential", name: "Non-Essential & Lifestyle", icon: "☕", color: "#db2777", isCore: false }
+    ];
+
+    const DEFAULT_CATEGORIES = [
+      // Core Essentials & Fitness (Total Budget: ₹25,360)
+      { id: "protein", sectionId: "core", name: "Protein", sub: "Eggs, Chicken, Fish, Mutton, Soya", budget: 3860 },
+      { id: "fitness", sectionId: "core", name: "Fitness, Gym & Supplements", sub: "Gym Fee, Supplements, ZMA, D3, Hevy App", budget: 8000 },
+      { id: "dairy", sectionId: "core", name: "Dairy", sub: "Paneer, Milk, Curd, Butter, Ghee, Greek Yogurt", budget: 2500 },
+      { id: "vegetables", sectionId: "core", name: "Vegetables", sub: "Mushroom, Sweet Potato, Parwal, Lauki, Tomato, Onion, Boro, Gobhi, Peas...", budget: 2000 },
+      { id: "fruits_salad", sectionId: "core", name: "Fruits & Salad", sub: "Cucumber, Lemon, Awala, Banana, Guava, Papaya", budget: 2000 },
+      { id: "spices", sectionId: "core", name: "Spices", sub: "Panchphoran, Tej Patta, Dry Chili, Oregano, Chili Flakes", budget: 1000 },
+      { id: "staples", sectionId: "core", name: "Staples", sub: "Daal, Aata, Rice, Oil, Snacks, Hajmola", budget: 2000 },
+      { id: "dry_fruits", sectionId: "core", name: "Dry Fruits & Seeds", sub: "Peanuts, Almonds, Walnuts, Khajur", budget: 2000 },
+      { id: "personal_care", sectionId: "core", name: "Cleaning & Personal Care", sub: "Cetaphil, Sebamed, Serum, Haircut, Beard Shave", budget: 2000 },
+
+      // Home RO Water
+      { id: "ro_water", sectionId: "water", name: "20L RO Water / Packaged Refills", sub: "Drinking water cans", budget: 0 },
+
+      // Fixed EMIs & Debt
+      { id: "kreditbee_emi", sectionId: "emi", name: "KreditBee EMI", sub: "Monthly EMI", budget: 0 },
+      { id: "bajaj_emi", sectionId: "emi", name: "Bajaj EMI", sub: "Monthly EMI", budget: 0 },
+      { id: "dmi_emi", sectionId: "emi", name: "DMI EMI", sub: "Monthly EMI", budget: 0 },
+      { id: "tvs_emi", sectionId: "emi", name: "TVS Credit EMI", sub: "Monthly EMI", budget: 0 },
+      { id: "sbi_emi", sectionId: "emi", name: "SBI EMI", sub: "Monthly EMI", budget: 0 },
+      { id: "sbi_interest", sectionId: "emi", name: "SBI Loan Interest", sub: "Loan interest", budget: 0 },
+
+      // Professional & Investments
+      { id: "ypt_app", sectionId: "investments", name: "YPT Study App Subscription", sub: "Study tools", budget: 0 },
+      { id: "alarmy_app", sectionId: "investments", name: "Alarmy App Subscription", sub: "Productivity app", budget: 0 },
+
+      // Fixed Housing & Utilities
+      { id: "rent", sectionId: "housing", name: "Rent", sub: "Monthly room rent", budget: 0 },
+      { id: "telecom", sectionId: "housing", name: "Telecom & Internet", sub: "Recharge, Airtel, Vi, Jio", budget: 0 },
+      { id: "electricity", sectionId: "housing", name: "Electricity Bill", sub: "Monthly electricity", budget: 0 },
+
+      // Household & One-Time Purchases
+      { id: "clothing", sectionId: "household", name: "Clothing & Accessory Maintenance", sub: "Winter Wear, Wash, Alterations, Detergent", budget: 0 },
+      { id: "tech_acc", sectionId: "household", name: "Tech & Electronics Accessories", sub: "OnePlus Neckband, cables, etc.", budget: 0 },
+      { id: "eyewear", sectionId: "household", name: "Eyewear / Optical", sub: "Spectacles", budget: 0 },
+      { id: "home_repairs", sectionId: "household", name: "Home Repairs & Maintenance", sub: "Electrician, plumbing, etc.", budget: 0 },
+
+      // Non-Essential & Lifestyle
+      { id: "friend_social", sectionId: "non_essential", name: "Friend / Social / Outing", sub: "Hangouts, Gifts", budget: 0 },
+      { id: "financial_fees", sectionId: "non_essential", name: "Financial Fees", sub: "HDFC Charge, CC Interest", budget: 0 },
+      { id: "travel", sectionId: "non_essential", name: "Travel & Commute", sub: "Train, Metro, Bike Parking, Fuel", budget: 0 },
+      { id: "outside_food", sectionId: "non_essential", name: "Outside Food / Dining", sub: "Biryani, Restaurants", budget: 0 },
+      { id: "tea_breaks", sectionId: "non_essential", name: "Tea Breaks", sub: "Chai / Coffee outside", budget: 0 },
+      { id: "convenience", sectionId: "non_essential", name: "Convenience / Tips / Snacks / Water", sub: "Misc small spends", budget: 0 }
+    ];
+
+    // Pre-loaded exact November 2026 baseline (Total: ₹70,048 | Core: ₹15,197)
+    function createInitialNov2026Transactions() {
+      return [
+        // Fixed EMIs (Nov 5)
+        { id: "seed_emi_1", date: "2026-11-05", sectionId: "emi", categoryId: "kreditbee_emi", amount: 6556, note: "Nov EMI (Baseline)", mode: "Auto-Debit" },
+        { id: "seed_emi_2", date: "2026-11-05", sectionId: "emi", categoryId: "bajaj_emi", amount: 4937, note: "Nov EMI (Baseline)", mode: "Auto-Debit" },
+        { id: "seed_emi_3", date: "2026-11-05", sectionId: "emi", categoryId: "dmi_emi", amount: 3670, note: "Nov EMI (Baseline)", mode: "Auto-Debit" },
+        { id: "seed_emi_4", date: "2026-11-05", sectionId: "emi", categoryId: "tvs_emi", amount: 3150, note: "Nov EMI (Baseline)", mode: "Auto-Debit" },
+        { id: "seed_emi_5", date: "2026-11-05", sectionId: "emi", categoryId: "sbi_emi", amount: 2084, note: "Nov EMI (Baseline)", mode: "Auto-Debit" },
+        { id: "seed_emi_6", date: "2026-11-05", sectionId: "emi", categoryId: "sbi_interest", amount: 697, note: "Nov Loan Interest (Baseline)", mode: "Auto-Debit" },
+
+        // Fixed Housing & Utilities (Nov 5)
+        { id: "seed_house_1", date: "2026-11-05", sectionId: "housing", categoryId: "rent", amount: 4500, note: "Nov Rent (Baseline)", mode: "UPI" },
+        { id: "seed_house_2", date: "2026-11-05", sectionId: "housing", categoryId: "telecom", amount: 2679, note: "Recharge / Airtel / Vi / Jio", mode: "UPI" },
+        { id: "seed_house_3", date: "2026-11-05", sectionId: "housing", categoryId: "electricity", amount: 464, note: "Electricity Bill", mode: "UPI" },
+
+        // Investments (Nov 6)
+        { id: "seed_inv_1", date: "2026-11-06", sectionId: "investments", categoryId: "ypt_app", amount: 199, note: "YPT Study App Subscription", mode: "UPI" },
+        { id: "seed_inv_2", date: "2026-11-06", sectionId: "investments", categoryId: "alarmy_app", amount: 272, note: "Alarmy App Subscription", mode: "UPI" },
+
+        // Household & One-Time (Nov 10)
+        { id: "seed_hh_1", date: "2026-11-10", sectionId: "household", categoryId: "clothing", amount: 17711, note: "Winter Wear, Wash, Alterations, Detergent", mode: "UPI" },
+        { id: "seed_hh_2", date: "2026-11-10", sectionId: "household", categoryId: "tech_acc", amount: 1700, note: "OnePlus Neckband", mode: "UPI" },
+        { id: "seed_hh_3", date: "2026-11-10", sectionId: "household", categoryId: "eyewear", amount: 600, note: "Spectacles", mode: "UPI" },
+        { id: "seed_hh_4", date: "2026-11-10", sectionId: "household", categoryId: "home_repairs", amount: 480, note: "Electrician", mode: "Cash" },
+
+        // Core Essentials Nov 1-21 Consolidated Baseline
+        { id: "seed_core_1", date: "2026-11-21", sectionId: "core", categoryId: "protein", amount: 1112, note: "Nov 1–21 Protein Total", mode: "UPI" },
+        { id: "seed_core_2", date: "2026-11-21", sectionId: "core", categoryId: "fitness", amount: 8057, note: "Nov 1–21 Gym, Supplements, ZMA, D3, Hevy", mode: "UPI" },
+        { id: "seed_core_3", date: "2026-11-21", sectionId: "core", categoryId: "dairy", amount: 640, note: "Nov 1–21 Dairy Total", mode: "UPI" },
+        { id: "seed_core_4", date: "2026-11-21", sectionId: "core", categoryId: "vegetables", amount: 635, note: "Nov 1–21 Vegetables Total", mode: "UPI" },
+        { id: "seed_core_5", date: "2026-11-21", sectionId: "core", categoryId: "fruits_salad", amount: 375, note: "Nov 1–21 Fruits & Salad Total", mode: "UPI" },
+        { id: "seed_core_6", date: "2026-11-21", sectionId: "core", categoryId: "staples", amount: 294, note: "Nov 1–21 Staples Total", mode: "UPI" },
+        { id: "seed_core_7", date: "2026-11-21", sectionId: "core", categoryId: "dry_fruits", amount: 1104, note: "Nov 1–21 Dry Fruits & Seeds Total", mode: "UPI" },
+        { id: "seed_core_8", date: "2026-11-21", sectionId: "core", categoryId: "personal_care", amount: 2870, note: "Nov 1–21 Cleaning & Personal Care Total", mode: "UPI" },
+
+        // Non-Essentials Nov 1-21 Consolidated Baseline
+        { id: "seed_ne_1", date: "2026-11-21", sectionId: "non_essential", categoryId: "friend_social", amount: 2800, note: "Nov 1–21 Outings (incl. ₹2k Gift)", mode: "UPI" },
+        { id: "seed_ne_2", date: "2026-11-21", sectionId: "non_essential", categoryId: "financial_fees", amount: 1082, note: "HDFC Charge & CC Interest", mode: "Auto-Debit" },
+        { id: "seed_ne_3", date: "2026-11-21", sectionId: "non_essential", categoryId: "travel", amount: 761, note: "Train, Metro, Bike Parking", mode: "UPI" },
+        { id: "seed_ne_4", date: "2026-11-21", sectionId: "non_essential", categoryId: "outside_food", amount: 250, note: "Biryani", mode: "UPI" },
+        { id: "seed_ne_5", date: "2026-11-21", sectionId: "non_essential", categoryId: "tea_breaks", amount: 134, note: "Nov 1–21 Tea Breaks", mode: "UPI" },
+        { id: "seed_ne_6", date: "2026-11-21", sectionId: "non_essential", categoryId: "convenience", amount: 105, note: "Tips / Snacks / Packaged Water", mode: "Cash" },
+
+        // Nov 22 Entries
+        { id: "seed_22_1", date: "2026-11-22", sectionId: "non_essential", categoryId: "tea_breaks", amount: 20, note: "Tea", mode: "UPI" },
+        { id: "seed_22_2", date: "2026-11-22", sectionId: "core", categoryId: "fruits_salad", amount: 60, note: "Cucumber", mode: "Cash" },
+        { id: "seed_22_3", date: "2026-11-22", sectionId: "core", categoryId: "fruits_salad", amount: 20, note: "Lemon", mode: "Cash" },
+        { id: "seed_22_4", date: "2026-11-22", sectionId: "core", categoryId: "vegetables", amount: 30, note: "Boro sabji", mode: "Cash" }
+      ];
+    }
+
+    function createDefaultState() {
+      return {
+        updatedAt: Date.now(),
+        sections: JSON.parse(JSON.stringify(DEFAULT_SECTIONS)),
+        categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
+        transactions: createInitialNov2026Transactions()
+      };
+    }
+
+    // App State
+    let state = loadLocalState();
+    let currentMonth = getLocalYearMonth(new Date()); // "YYYY-MM"
+    let collapsedSections = {};
+    let charts = { budget: null, daily: null, section: null };
+
+    // Firebase Handles
+    let db = null;
+    let docRef = null;
+    let unsubscribeSnapshot = null;
+    let syncTimeout = null;
+
+    function loadLocalState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.transactions) && Array.isArray(parsed.categories)) {
+            return parsed;
+          }
+        }
+      } catch (e) { console.error(e); }
+      const fresh = createDefaultState();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
+      return fresh;
+    }
+
+    function persistState(pushToCloud = true) {
+      state.updatedAt = Date.now();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      if (pushToCloud && docRef) {
+        setSyncStatus("syncing", "Syncing...");
+        clearTimeout(syncTimeout);
+        syncTimeout = setTimeout(async () => {
+          try {
+            await docRef.set(state);
+            setSyncStatus("synced", "Cloud Synced");
+          } catch (err) {
+            console.error("Cloud save failed:", err);
+            setSyncStatus("error", "Sync Error");
+          }
+        }, 350);
+      }
+    }
+
+    // Utility Helpers
+    function formatINR(num) {
+      const sign = num < 0 ? "-" : "";
+      return sign + "₹" + Math.abs(Math.round(num)).toLocaleString("en-IN");
+    }
+
+    function getLocalDateStr(d = new Date()) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function getLocalYearMonth(d = new Date()) {
+      return getLocalDateStr(d).slice(0, 7);
+    }
+
+    function formatMonthTitle(ym) {
+      const [y, m] = ym.split("-").map(Number);
+      const dt = new Date(y, m - 1, 1);
+      return dt.toLocaleString("en-IN", { month: "short", year: "numeric" });
+    }
+
+    function shiftMonth(delta) {
+      const [y, m] = currentMonth.split("-").map(Number);
+      const dt = new Date(y, m - 1 + delta, 1);
+      currentMonth = getLocalYearMonth(dt);
+      renderAll();
+    }
+
+    function getMonthTransactions(ym = currentMonth) {
+      return state.transactions.filter(t => t.date && t.date.startsWith(ym));
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      setTimeout(() => el.classList.remove("show"), 2200);
+    }
+
+    function setSyncStatus(type, text) {
+      const dot = document.getElementById("syncDot");
+      const label = document.getElementById("syncText");
+      dot.className = "dot " + type;
+      label.textContent = text;
+    }
+
+    // Navigation
+    function switchTab(tab) {
+      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      document.getElementById("view-" + tab).classList.add("active");
+      document.getElementById("nav-" + tab).classList.add("active");
+      if (tab === "graphs") renderCharts();
+      if (tab === "daily") renderDaily();
+      if (tab === "settings") renderSettings();
+    }
+
+    // Render Everything
+    function renderAll() {
+      document.getElementById("monthLabel").textContent = formatMonthTitle(currentMonth);
+      renderDashboard();
+      if (document.getElementById("view-daily").classList.contains("active")) renderDaily();
+      if (document.getElementById("view-graphs").classList.contains("active")) renderCharts();
+      if (document.getElementById("view-settings").classList.contains("active")) renderSettings();
+    }
+
+    function renderDashboard() {
+      const txs = getMonthTransactions();
+      const todayStr = getLocalDateStr();
+
+      // Calculate totals per category and section
+      const catTotals = {};
+      const secTotals = {};
+      let todayTotal = 0;
+      let grandTotal = 0;
+
+      txs.forEach(t => {
+        const amt = Number(t.amount) || 0;
+        catTotals[t.categoryId] = (catTotals[t.categoryId] || 0) + amt;
+        secTotals[t.sectionId] = (secTotals[t.sectionId] || 0) + amt;
+        grandTotal += amt;
+        if (t.date === todayStr) todayTotal += amt;
+      });
+
+      const coreCats = state.categories.filter(c => c.sectionId === "core");
+      const coreBudget = coreCats.reduce((sum, c) => sum + (Number(c.budget) || 0), 0);
+      const coreSpent = secTotals["core"] || 0;
+      const coreRem = coreBudget - coreSpent;
+      const nonEssentialSpent = secTotals["non_essential"] || 0;
+
+      // Days left in viewed month
+      const [y, m] = currentMonth.split("-").map(Number);
+      const daysInMonth = new Date(y, m, 0).getDate();
+      const now = new Date();
+      const nowYM = getLocalYearMonth(now);
+      let daysLeft = 0;
+      if (currentMonth === nowYM) {
+        daysLeft = Math.max(1, daysInMonth - now.getDate() + 1);
+      } else if (currentMonth > nowYM) {
+        daysLeft = daysInMonth;
+      }
+
+      document.getElementById("coreRemaining").textContent = formatINR(coreRem);
+      document.getElementById("coreRemaining").style.color = coreRem < 0 ? "#fca5a5" : "#5eead4";
+      document.getElementById("coreDailySafe").textContent = daysLeft > 0
+        ? `~${formatINR(Math.max(0, coreRem / daysLeft))}/day left (${daysLeft}d left)`
+        : `Budget: ${formatINR(coreBudget)}`;
+
+      document.getElementById("coreSpent").textContent = formatINR(coreSpent);
+      const pct = coreBudget > 0 ? Math.round((coreSpent / coreBudget) * 100) : 0;
+      document.getElementById("corePct").textContent = `${pct}% of ${formatINR(coreBudget)} budget`;
+
+      document.getElementById("todaySpent").textContent = formatINR(todayTotal);
+      document.getElementById("todayDateLabel").textContent = now.toLocaleDateString("en-IN", { day: "numeric", month: "short", weekday: "short" });
+
+      document.getElementById("grandTotal").textContent = formatINR(grandTotal);
+      document.getElementById("nonEssentialSub").textContent = `Non-Essentials: ${formatINR(nonEssentialSpent)}`;
+
+      // Render all 7 sections
+      const container = document.getElementById("sectionsContainer");
+      container.innerHTML = state.sections.map(sec => {
+        const cats = state.categories.filter(c => c.sectionId === sec.id);
+        const spent = secTotals[sec.id] || 0;
+        const budget = cats.reduce((s, c) => s + (Number(c.budget) || 0), 0);
+        const isCollapsed = !!collapsedSections[sec.id];
+
+        const rowsHtml = cats.map(c => {
+          const cSpent = catTotals[c.id] || 0;
+          const cBudget = Number(c.budget) || 0;
+          let rightSub = "";
+          let barHtml = "";
+
+          if (cBudget > 0) {
+            const rem = cBudget - cSpent;
+            const cPct = Math.min(100, Math.round((cSpent / cBudget) * 100));
+            const barColor = rem < 0 ? "var(--danger)" : (cPct > 80 ? "var(--warning)" : sec.color);
+            rightSub = `<small class="${rem < 0 ? "text-danger" : "text-success"}">${rem < 0 ? "Over " + formatINR(Math.abs(rem)) : "Left " + formatINR(rem)}</small>`;
+            barHtml = `
+              <div class="progress-track">
+                <div class="progress-fill" style="width:${cPct}%; background:${barColor};"></div>
+              </div>`;
+          }
+
+          return `
+            <div class="cat-row" onclick="openModalWithPreset('${sec.id}','${c.id}','','')" style="cursor:pointer;">
+              <div class="cat-top">
+                <div>
+                  <span class="cat-name">${escapeHtml(c.name)}</span>
+                  ${c.sub ? `<span class="cat-sub">${escapeHtml(c.sub)}</span>` : ""}
+                </div>
+                <div class="cat-nums">
+                  ${formatINR(cSpent)}${cBudget > 0 ? ` <span style="color:var(--muted);font-weight:500;">/ ${formatINR(cBudget)}</span>` : ""}
+                  ${rightSub}
+                </div>
+              </div>
+              ${barHtml}
+            </div>`;
+        }).join("");
+
+        return `
+          <div class="section-card">
+            <div class="section-header" onclick="toggleSection('${sec.id}')">
+              <div class="section-title">
+                <span>${sec.icon}</span>
+                <span>${escapeHtml(sec.name)}</span>
+              </div>
+              <div class="section-total">
+                <div class="amt">${formatINR(spent)}</div>
+                <div class="meta">${budget > 0 ? `Budget ${formatINR(budget)} • ` : ""}${isCollapsed ? "Show ▾" : "Hide ▴"}</div>
+              </div>
+            </div>
+            <div class="section-body" style="display:${isCollapsed ? "none" : "block"};">
+              ${rowsHtml}
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    function toggleSection(secId) {
+      collapsedSections[secId] = !collapsedSections[secId];
+      renderDashboard();
+    }
+
+    // Daily Log View
+    function renderDaily() {
+      const secFilterEl = document.getElementById("sectionFilter");
+      if (secFilterEl.options.length <= 1) {
+        state.sections.forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = s.id;
+          opt.textContent = `${s.icon} ${s.name}`;
+          secFilterEl.appendChild(opt);
+        });
+      }
+
+      const q = (document.getElementById("searchInput").value || "").trim().toLowerCase();
+      const secF = secFilterEl.value;
+      const dateF = document.getElementById("dateFilter").value;
+
+      const catMap = Object.fromEntries(state.categories.map(c => [c.id, c]));
+      const secMap = Object.fromEntries(state.sections.map(s => [s.id, s]));
+
+      let list = getMonthTransactions().filter(t => {
+        if (secF !== "all" && t.sectionId !== secF) return false;
+        if (dateF && t.date !== dateF) return false;
+        if (q) {
+          const cName = (catMap[t.categoryId]?.name || "").toLowerCase();
+          const sName = (secMap[t.sectionId]?.name || "").toLowerCase();
+          const note = (t.note || "").toLowerCase();
+          if (!cName.includes(q) && !sName.includes(q) && !note.includes(q)) return false;
+        }
+        return true;
+      });
+
+      list.sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+
+      const filteredSum = list.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      document.getElementById("dailyFilterCount").textContent = `${list.length} entries • Total ${formatINR(filteredSum)}`;
+
+      const container = document.getElementById("dailyListContainer");
+      if (list.length === 0) {
+        container.innerHTML = `<div class="card" style="text-align:center;color:var(--muted);padding:32px;">No expenses recorded for this filter. Tap <strong>+</strong> to add one.</div>`;
+        return;
+      }
+
+      // Group by Date
+      const grouped = {};
+      list.forEach(t => {
+        if (!grouped[t.date]) grouped[t.date] = [];
+        grouped[t.date].push(t);
+      });
+
+      container.innerHTML = Object.keys(grouped).sort((a, b) => b.localeCompare(a)).map(dateStr => {
+        const items = grouped[dateStr];
+        const daySum = items.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+        const prettyDate = new Date(dateStr + "T00:00:00").toLocaleDateString("en-IN", {
+          weekday: "short", day: "numeric", month: "short", year: "numeric"
+        });
+
+        const txHtml = items.map(t => {
+          const cat = catMap[t.categoryId];
+          const sec = secMap[t.sectionId];
+          return `
+            <div class="tx-item">
+              <div class="tx-left">
+                <div class="tx-title">${escapeHtml(t.note || cat?.name || "Expense")}</div>
+                <div class="tx-meta">${sec?.icon || ""} ${escapeHtml(cat?.name || t.categoryId)} • ${escapeHtml(t.mode || "UPI")}</div>
+              </div>
+              <div class="tx-right">
+                <div class="tx-amt">${formatINR(t.amount)}</div>
+                <button class="mini-btn" onclick="editTransaction('${t.id}')">✏️</button>
+                <button class="mini-btn del" onclick="deleteTransaction('${t.id}')">🗑</button>
+              </div>
+            </div>`;
+        }).join("");
+
+        return `
+          <div class="day-group">
+            <div class="day-header">
+              <span>${prettyDate}</span>
+              <span>${formatINR(daySum)}</span>
+            </div>
+            ${txHtml}
+          </div>`;
+      }).join("");
+    }
+
+    function clearFilters() {
+      document.getElementById("searchInput").value = "";
+      document.getElementById("sectionFilter").value = "all";
+      document.getElementById("dateFilter").value = "";
+      renderDaily();
+    }
+
+    // Graphs View (Chart.js)
+    function renderCharts() {
+      const txs = getMonthTransactions();
+      const isDark = document.body.classList.contains("dark");
+      const textColor = isDark ? "#cbd5e1" : "#334155";
+      const gridColor = isDark ? "#334155" : "#e2e8f0";
+
+      // 1. Core Budget vs Spent
+      const coreCats = state.categories.filter(c => c.sectionId === "core");
+      const coreSpentMap = {};
+      txs.filter(t => t.sectionId === "core").forEach(t => {
+        coreSpentMap[t.categoryId] = (coreSpentMap[t.categoryId] || 0) + Number(t.amount);
+      });
+
+      const labels1 = coreCats.map(c => c.name.length > 16 ? c.name.slice(0, 15) + "…" : c.name);
+      const budgetData = coreCats.map(c => Number(c.budget) || 0);
+      const spentData = coreCats.map(c => coreSpentMap[c.id] || 0);
+      const spentColors = coreCats.map((c, i) => spentData[i] > budgetData[i] ? "#dc2626" : "#0f766e");
+
+      const totalCoreB = budgetData.reduce((a, b) => a + b, 0);
+      const totalCoreS = spentData.reduce((a, b) => a + b, 0);
+      const badge = document.getElementById("chartCoreBadge");
+      badge.textContent = totalCoreS > totalCoreB ? "Over Core Budget" : `${Math.round((totalCoreS / (totalCoreB || 1)) * 100)}% Used`;
+      badge.className = "badge " + (totalCoreS > totalCoreB ? "over" : "ok");
+
+      if (charts.budget) charts.budget.destroy();
+      charts.budget = new Chart(document.getElementById("budgetChart"), {
+        type: "bar",
+        data: {
+          labels: labels1,
+          datasets: [
+            { label: "Budget (₹)", data: budgetData, backgroundColor: isDark ? "#475569" : "#cbd5e1", borderRadius: 6 },
+            { label: "Spent (₹)", data: spentData, backgroundColor: spentColors, borderRadius: 6 }
+          ]
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: textColor } } },
+          scales: {
+            x: { ticks: { color: textColor }, grid: { color: gridColor } },
+            y: { ticks: { color: textColor }, grid: { display: false } }
+          }
+        }
+      });
+
+      // 2. Daily Spending Trend
+      const excludeFixed = document.getElementById("excludeFixedToggle").checked;
+      const [y, m] = currentMonth.split("-").map(Number);
+      const daysInMonth = new Date(y, m, 0).getDate();
+      const dayLabels = [];
+      const dayTotals = [];
+      for (let d = 1; d <= daysInMonth; d++) {
+        dayLabels.push(String(d));
+        dayTotals.push(0);
+      }
+
+      txs.forEach(t => {
+        if (excludeFixed && !["core", "water", "non_essential"].includes(t.sectionId)) return;
+        const dayNum = parseInt(t.date.slice(8, 10), 10);
+        if (dayNum >= 1 && dayNum <= daysInMonth) {
+          dayTotals[dayNum - 1] += Number(t.amount) || 0;
+        }
+      });
+
+      if (charts.daily) charts.daily.destroy();
+      charts.daily = new Chart(document.getElementById("dailyChart"), {
+        type: "bar",
+        data: {
+          labels: dayLabels,
+          datasets: [{
+            label: "Daily Spend (₹)",
+            data: dayTotals,
+            backgroundColor: "#0f766e",
+            borderRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: textColor }, grid: { display: false } },
+            y: { ticks: { color: textColor }, grid: { color: gridColor } }
+          }
+        }
+      });
+
+      // 3. Section Distribution Doughnut
+      const secSums = state.sections.map(sec =>
+        txs.filter(t => t.sectionId === sec.id).reduce((s, t) => s + Number(t.amount), 0)
+      );
+
+      if (charts.section) charts.section.destroy();
+      charts.section = new Chart(document.getElementById("sectionChart"), {
+        type: "doughnut",
+        data: {
+          labels: state.sections.map(s => s.name),
+          datasets: [{
+            data: secSums,
+            backgroundColor: state.sections.map(s => s.color),
+            borderWidth: 2,
+            borderColor: isDark ? "#1e293b" : "#ffffff"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "bottom", labels: { color: textColor, boxWidth: 12, font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    // Modal & CRUD
+    function openAddModal() {
+      document.getElementById("modalTitle").textContent = "Add Expense";
+      document.getElementById("txId").value = "";
+      document.getElementById("txAmount").value = "";
+      document.getElementById("txNote").value = "";
+      document.getElementById("txMode").value = "UPI";
+
+      // Default date to today if inside viewed month, else 1st of viewed month
+      const today = getLocalDateStr();
+      document.getElementById("txDate").value = today.startsWith(currentMonth) ? today : `${currentMonth}-01`;
+
+      populateSectionDropdown("core");
+      populateCategoryDropdown();
+      document.getElementById("txModal").classList.add("open");
+      setTimeout(() => document.getElementById("txAmount").focus(), 100);
+    }
+
+    function openModalWithPreset(sectionId, categoryId, note, amount) {
+      openAddModal();
+      populateSectionDropdown(sectionId);
+      populateCategoryDropdown(categoryId);
+      if (note) document.getElementById("txNote").value = note;
+      if (amount !== "") document.getElementById("txAmount").value = amount;
+    }
+
+    function editTransaction(id) {
+      const tx = state.transactions.find(t => t.id === id);
+      if (!tx) return;
+      document.getElementById("modalTitle").textContent = "Edit Expense";
+      document.getElementById("txId").value = tx.id;
+      document.getElementById("txAmount").value = tx.amount;
+      document.getElementById("txDate").value = tx.date;
+      document.getElementById("txNote").value = tx.note || "";
+      document.getElementById("txMode").value = tx.mode || "UPI";
+      populateSectionDropdown(tx.sectionId);
+      populateCategoryDropdown(tx.categoryId);
+      document.getElementById("txModal").classList.add("open");
+    }
+
+    function closeModal() {
+      document.getElementById("txModal").classList.remove("open");
+    }
+
+    function populateSectionDropdown(selectedId) {
+      const el = document.getElementById("txSection");
+      el.innerHTML = state.sections.map(s =>
+        `<option value="${s.id}" ${s.id === selectedId ? "selected" : ""}>${s.icon} ${escapeHtml(s.name)}</option>`
+      ).join("");
+    }
+
+    function populateCategoryDropdown(selectedCatId) {
+      const secId = document.getElementById("txSection").value;
+      const cats = state.categories.filter(c => c.sectionId === secId);
+      const el = document.getElementById("txCategory");
+      el.innerHTML = cats.map(c =>
+        `<option value="${c.id}" ${c.id === selectedCatId ? "selected" : ""}>${escapeHtml(c.name)}</option>`
+      ).join("");
+    }
+
+    function saveTransaction(e) {
+      e.preventDefault();
+      const id = document.getElementById("txId").value;
+      const amount = parseFloat(document.getElementById("txAmount").value);
+      const date = document.getElementById("txDate").value;
+      const sectionId = document.getElementById("txSection").value;
+      const categoryId = document.getElementById("txCategory").value;
+      const note = document.getElementById("txNote").value.trim();
+      const mode = document.getElementById("txMode").value;
+
+      if (!amount || amount <= 0 || !date) return;
+
+      if (id) {
+        const idx = state.transactions.findIndex(t => t.id === id);
+        if (idx !== -1) state.transactions[idx] = { id, date, sectionId, categoryId, amount, note, mode };
+        showToast("Expense updated");
+      } else {
+        state.transactions.push({
+          id: "tx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+          date, sectionId, categoryId, amount, note, mode
+        });
+        showToast(`Logged ${formatINR(amount)}`);
+      }
+
+      currentMonth = date.slice(0, 7);
+      persistState(true);
+      closeModal();
+      renderAll();
+    }
+
+    function deleteTransaction(id) {
+      if (!confirm("Delete this expense?")) return;
+      state.transactions = state.transactions.filter(t => t.id !== id);
+      persistState(true);
+      renderAll();
+      showToast("Deleted");
+    }
+
+    // Settings & Budgets
+    function renderSettings() {
+      const savedDoc = localStorage.getItem(FB_DOC_KEY) || DEFAULT_SYNC_DOC_ID;
+      const savedCfg = localStorage.getItem(FB_CONFIG_KEY) || (DEFAULT_FIREBASE_CONFIG ? JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2) : "");
+      document.getElementById("syncDocIdInput").value = savedDoc;
+      document.getElementById("firebaseConfigInput").value = savedCfg;
+
+      const coreCats = state.categories.filter(c => c.sectionId === "core");
+      document.getElementById("budgetEditorList").innerHTML = coreCats.map(c => `
+        <div class="budget-edit-row">
+          <div><strong>${escapeHtml(c.name)}</strong><div style="font-size:0.75rem;color:var(--muted);">${escapeHtml(c.sub || "")}</div></div>
+          <input type="number" min="0" data-budget-cat="${c.id}" value="${c.budget || 0}" />
+        </div>`).join("");
+
+      const newSecEl = document.getElementById("newCatSection");
+      newSecEl.innerHTML = state.sections.map(s => `<option value="${s.id}">${s.icon} ${escapeHtml(s.name)}</option>`).join("");
+    }
+
+    function saveBudgets() {
+      document.querySelectorAll("[data-budget-cat]").forEach(inp => {
+        const catId = inp.getAttribute("data-budget-cat");
+        const cat = state.categories.find(c => c.id === catId);
+        if (cat) cat.budget = Math.max(0, Number(inp.value) || 0);
+      });
+      persistState(true);
+      renderAll();
+      showToast("Monthly budgets updated!");
+    }
+
+    function addCustomCategory() {
+      const sectionId = document.getElementById("newCatSection").value;
+      const name = document.getElementById("newCatName").value.trim();
+      const budget = Math.max(0, Number(document.getElementById("newCatBudget").value) || 0);
+      if (!name) return showToast("Enter a category name");
+      const id = "cat_" + Date.now();
+      state.categories.push({ id, sectionId, name, sub: "Custom category", budget });
+      document.getElementById("newCatName").value = "";
+      document.getElementById("newCatBudget").value = "";
+      persistState(true);
+      renderAll();
+      showToast("Category added!");
+    }
+
+    // Export / Import / Reset
+    function exportCSV() {
+      const txs = getMonthTransactions();
+      const catMap = Object.fromEntries(state.categories.map(c => [c.id, c.name]));
+      const secMap = Object.fromEntries(state.sections.map(s => [s.id, s.name]));
+      const rows = [["Date", "Section", "Category", "Item/Note", "Payment Mode", "Amount (INR)"]];
+      txs.forEach(t => rows.push([t.date, secMap[t.sectionId] || "", catMap[t.categoryId] || "", t.note || "", t.mode || "", t.amount]));
+      const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+      downloadBlob(csv, `expenses_${currentMonth}.csv`, "text/csv");
+    }
+
+    function exportJSON() {
+      downloadBlob(JSON.stringify(state, null, 2), `expense_tracker_backup_${getLocalDateStr()}.json`, "application/json");
+    }
+
+    function downloadBlob(content, filename, type) {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([content], { type }));
+      a.download = filename;
+      a.click();
+    }
+
+    function importJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result);
+          if (!Array.isArray(parsed.transactions)) throw new Error("Invalid file");
+          state = parsed;
+          persistState(true);
+          renderAll();
+          showToast("Backup restored!");
+        } catch (err) {
+          alert("Invalid JSON backup file.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetToBaseline() {
+      if (!confirm("Reset all data to your Nov 2026 ₹70,048 baseline? This will overwrite current data.")) return;
+      state = createDefaultState();
+      currentMonth = "2026-11";
+      persistState(true);
+      renderAll();
+      showToast("Nov 2026 baseline restored");
+    }
+
+    // Firebase Multi-Device Cloud Sync
+    function saveFirebaseSettings() {
+      const rawCfg = document.getElementById("firebaseConfigInput").value.trim();
+      const docId = (document.getElementById("syncDocIdInput").value || "").trim() || DEFAULT_SYNC_DOC_ID;
+      try {
+        // Support pasting either pure JSON or JS object snippet from Firebase console
+        const cleaned = rawCfg
+          .replace(/const\s+\w+\s*=\s*/g, "")
+          .replace(/;$/, "")
+          .replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":')
+          .replace(/'/g, '"');
+        const cfg = JSON.parse(cleaned);
+        if (!cfg.apiKey || !cfg.projectId) throw new Error("Missing apiKey or projectId");
+        localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(cfg, null, 2));
+        localStorage.setItem(FB_DOC_KEY, docId);
+        initFirebase(cfg, docId);
+        showToast("Connecting to Firebase...");
+      } catch (e) {
+        alert("Invalid Firebase config. Please copy the firebaseConfig object from Firebase Console.");
+      }
+    }
+
+    function disconnectFirebase() {
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+      unsubscribeSnapshot = null;
+      docRef = null;
+      localStorage.removeItem(FB_CONFIG_KEY);
+      setSyncStatus("", "Local Only");
+      showToast("Disconnected from Cloud");
+    }
+
+    async function initFirebase(cfg, docId) {
+      try {
+        setSyncStatus("syncing", "Connecting...");
+        if (unsubscribeSnapshot) unsubscribeSnapshot();
+
+        let app;
+        if (firebase.apps.length) {
+          app = firebase.apps[0];
+        } else {
+          app = firebase.initializeApp(cfg);
+        }
+        db = firebase.firestore(app);
+        docRef = db.collection("expense_trackers").doc(docId);
+
+        // Initial check: pull cloud if exists, else upload local baseline
+        const snap = await docRef.get();
+        if (snap.exists && snap.data() && Array.isArray(snap.data().transactions)) {
+          const cloudData = snap.data();
+          if ((cloudData.updatedAt || 0) >= (state.updatedAt || 0)) {
+            state = cloudData;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            renderAll();
+          } else {
+            await docRef.set(state);
+          }
+        } else {
+          await docRef.set(state);
+        }
+
+        // Real-time listener across all devices
+        unsubscribeSnapshot = docRef.onSnapshot(s => {
+          if (s.metadata.hasPendingWrites || !s.exists) return;
+          const cloud = s.data();
+          if (cloud && Array.isArray(cloud.transactions) && (cloud.updatedAt || 0) > (state.updatedAt || 0)) {
+            state = cloud;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            renderAll();
+            showToast("Synced from another device");
+          }
+          setSyncStatus("synced", "Cloud Synced");
+        }, err => {
+          console.error(err);
+          setSyncStatus("error", "Sync Error");
+        });
+
+        setSyncStatus("synced", "Cloud Synced");
+      } catch (err) {
+        console.error("Firebase Init Error:", err);
+        setSyncStatus("error", "Sync Failed");
+      }
+    }
+
+    async function forcePushCloud() {
+      if (!docRef) return alert("Connect Firebase first.");
+      setSyncStatus("syncing", "Pushing...");
+      state.updatedAt = Date.now();
+      await docRef.set(state);
+      setSyncStatus("synced", "Cloud Synced");
+      showToast("Pushed local data to Cloud");
+    }
+
+    async function forcePullCloud() {
+      if (!docRef) return alert("Connect Firebase first.");
+      setSyncStatus("syncing", "Pulling...");
+      const snap = await docRef.get();
+      if (snap.exists) {
+        state = snap.data();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        renderAll();
+        setSyncStatus("synced", "Cloud Synced");
+        showToast("Pulled latest data from Cloud");
+      } else {
+        showToast("No cloud data found yet");
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str || "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+    }
+
+    // Theme & Boot
+    document.getElementById("prevMonthBtn").addEventListener("click", () => shiftMonth(-1));
+    document.getElementById("nextMonthBtn").addEventListener("click", () => shiftMonth(1));
+    document.getElementById("themeBtn").addEventListener("click", () => {
+      document.body.classList.toggle("dark");
+      const dark = document.body.classList.contains("dark");
+      localStorage.setItem("expense_dark_mode", dark ? "1" : "0");
+      document.getElementById("themeBtn").textContent = dark ? "☀️" : "🌙";
+      if (document.getElementById("view-graphs").classList.contains("active")) renderCharts();
+    });
+
+    if (localStorage.getItem("expense_dark_mode") === "1") {
+      document.body.classList.add("dark");
+      document.getElementById("themeBtn").textContent = "☀️";
+    }
+
+    // Close modal on backdrop click
+    document.getElementById("txModal").addEventListener("click", (e) => {
+      if (e.target.id === "txModal") closeModal();
+    });
+
+    // Auto-connect Firebase if configured
+    (function boot() {
+      renderAll();
+      const savedCfg = localStorage.getItem(FB_CONFIG_KEY);
+      const savedDoc = localStorage.getItem(FB_DOC_KEY) || DEFAULT_SYNC_DOC_ID;
+      if (savedCfg) {
+        try { initFirebase(JSON.parse(savedCfg), savedDoc); } catch (e) {}
+      } else if (DEFAULT_FIREBASE_CONFIG) {
+        initFirebase(DEFAULT_FIREBASE_CONFIG, savedDoc);
+      }
+    })();
+  </script>
+</body>
+</html>
